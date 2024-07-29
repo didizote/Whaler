@@ -10,25 +10,26 @@ Introdução | Instalação | Como Usar | Funcionalidades | Licença | Contato
 Whaler é uma ferramenta de código aberto que automatiza a criação de páginas de phishing para simular ataques e testar a resiliência de usuários e sistemas. É importante lembrar que Whaler deve ser utilizado apenas para fins legais e éticos, como em ambientes de teste ou com a devida autorização.
 Instalação
 
-Para instalar o Whaler, siga os passos abaixo:
+##Para instalar o Whaler, siga os passos abaixo:
+
 Clone este repositório:
-
+```sh
 git clone https://github.com/seu-usuario/whaler.git
-
+```
 
 Navegue até o diretório do projeto:
-
-bash
-
+```sh
 cd whaler
+```
 
-Como Usar
+##Como Usar
 
 Para utilizar o Whaler, você pode seguir os seguintes passos:
 
 Execute o script principal:
-
+```sh
 python whaler.py
+```
 
 Siga as instruções no terminal para selecionar o site de phishing desejado e configurar as opções.
 
